@@ -23,7 +23,7 @@ using Microsoft.Research.Kinect.Nui;
 /// Falling shapes, and intersection hit testing with body segments
 /// </summary>
 /// 
-namespace ShapeGame_Utils
+namespace Doppelganger_Utils
 {
     // For hit testing, a dictionary of BoneData items, keyed off the endpoints
     // of a segment (Bone) is used.  The velocity of these endpoints is estimated

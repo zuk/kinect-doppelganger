@@ -27,7 +27,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Research.Kinect.Nui;
-using ShapeGame_Utils;
+using Doppelganger_Utils;
 
 
 // Since the timer resolution defaults to about 10ms precisely, we need to
