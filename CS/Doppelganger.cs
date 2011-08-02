@@ -18,6 +18,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Microsoft.Research.Kinect.Nui;
+using System.Windows.Media.Imaging;
 
 /// <summary>
 /// Falling shapes, and intersection hit testing with body segments
@@ -31,12 +32,171 @@ namespace Doppelganger_Utils
 
     public struct Bone
     {
+        public enum BoneID
+        {
+            Missing = -1,
+
+            HandLeft = 0,
+            ForearmLeft = 1,
+            ArmLeft = 2,
+            ShoulderLeft = 3,
+            HipLeft = 4,
+            ThighLeft = 5,
+            CalfLeft = 6,
+            AnkleLeft = 7,
+            FootLeft = 8,
+
+            Torso = 9,
+            Neck = 10,
+
+            HandRight = 11,
+            ForearmRight = 12,
+            ArmRight = 13,
+            ShoulderRight = 14,
+            HipRight = 15,
+            ThighRight = 16,
+            CalfRight = 17,
+            AnkleRight = 18,
+            FootRight = 19
+        }
+
         public JointID joint1;
         public JointID joint2;
         public Bone(JointID j1, JointID j2)
         {
             joint1 = j1;
             joint2 = j2;
+        }
+        public BoneID GetBoneID()
+        {
+            if (IsJointPair(JointID.HandLeft, JointID.WristLeft))
+                return BoneID.HandLeft;
+            else if (IsJointPair(JointID.WristLeft, JointID.ElbowLeft))
+                return BoneID.ForearmLeft;
+            else if (IsJointPair(JointID.ElbowLeft, JointID.ShoulderLeft))
+                return BoneID.ArmLeft;
+            else if (IsJointPair(JointID.ShoulderLeft, JointID.ShoulderCenter))
+                return BoneID.ShoulderLeft;
+            else if (IsJointPair(JointID.HipCenter, JointID.HipLeft))
+                return BoneID.HipLeft;
+            else if (IsJointPair(JointID.HipLeft, JointID.KneeLeft))
+                return BoneID.ThighLeft;
+            else if (IsJointPair(JointID.KneeLeft, JointID.AnkleLeft))
+                return BoneID.CalfLeft;
+            else if (IsJointPair(JointID.AnkleLeft, JointID.FootLeft))
+                return BoneID.FootLeft;
+            else if (IsJointPair(JointID.HandRight, JointID.WristRight))
+                return BoneID.HandRight;
+            else if (IsJointPair(JointID.WristRight, JointID.ElbowRight))
+                return BoneID.ForearmRight;
+            else if (IsJointPair(JointID.ElbowRight, JointID.ShoulderRight))
+                return BoneID.ArmRight;
+            else if (IsJointPair(JointID.ShoulderRight, JointID.ShoulderCenter))
+                return BoneID.ShoulderRight;
+            else if (IsJointPair(JointID.HipCenter, JointID.HipRight))
+                return BoneID.HipRight;
+            else if (IsJointPair(JointID.HipRight, JointID.KneeRight))
+                return BoneID.ThighRight;
+            else if (IsJointPair(JointID.KneeRight, JointID.AnkleRight))
+                return BoneID.CalfRight;
+            else if (IsJointPair(JointID.HipRight, JointID.KneeRight))
+                return BoneID.AnkleRight;
+            else if (IsJointPair(JointID.AnkleRight, JointID.FootRight))
+                return BoneID.FootRight;
+            else if (IsJointPair(JointID.ShoulderCenter, JointID.Head))
+                return BoneID.Neck;
+            else if (IsJointPair(JointID.ShoulderCenter, JointID.HipCenter))
+                return BoneID.Torso;
+            else
+                return BoneID.Missing;
+        }
+        private bool IsJointPair(JointID jointA, JointID jointB)
+        {
+            return (joint1 == jointA && joint2 == jointB) || (joint1 == jointB && joint2 == jointA);
+        }
+    }
+
+    public class Skin
+    {
+        public Dictionary<Bone.BoneID, Image> bones = new Dictionary<Bone.BoneID, Image>();
+        public Dictionary<JointID, Image> joints = new Dictionary<JointID, Image>();
+        public Skin() {
+            Bone.BoneID[] boneKeys = {
+                Bone.BoneID.HandLeft,
+                Bone.BoneID.ForearmLeft,
+                Bone.BoneID.ArmLeft,
+                Bone.BoneID.ShoulderLeft,
+                Bone.BoneID.HipLeft,
+                Bone.BoneID.ThighLeft,
+                Bone.BoneID.CalfLeft,
+                Bone.BoneID.AnkleLeft,
+
+                Bone.BoneID.Torso,
+
+                Bone.BoneID.HandRight,
+                Bone.BoneID.ForearmRight,
+                Bone.BoneID.ArmRight,
+                Bone.BoneID.ShoulderRight,
+                Bone.BoneID.HipRight,
+                Bone.BoneID.ThighRight,
+                Bone.BoneID.CalfRight,
+                Bone.BoneID.AnkleRight
+            };
+
+            JointID[] jointKeys = {
+                JointID.HandLeft,
+                JointID.FootLeft,
+
+                JointID.Head,
+
+                JointID.HandRight,
+                JointID.FootRight
+            };
+
+            foreach (Bone.BoneID boneID in boneKeys)
+            {
+                Image img = new Image();
+                BitmapImage bmp = new BitmapImage();
+                var boneFileUri = new Uri("skins/Bone-" + boneID + ".png", UriKind.Relative);
+                try
+                {
+                    PngBitmapDecoder decoder = new PngBitmapDecoder(boneFileUri, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                    BitmapSource bmps = decoder.Frames[0];
+                    img.Source = bmps;
+                    img.Stretch = Stretch.None;
+                    bones.Add(boneID, img);
+                }
+                catch (System.IO.FileNotFoundException e)
+                {
+                    PngBitmapDecoder decoder = new PngBitmapDecoder(new Uri("skins/Bone-Missing.png", UriKind.Relative), BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                    BitmapSource bmps = decoder.Frames[0];
+                    img.Source = bmps;
+                    img.Stretch = Stretch.None;
+                    bones.Add(boneID, img);
+                    //System.Diagnostics.Trace.TraceWarning("Bone file '" + boneFileUri + " missing!");
+                }
+            }
+
+            foreach (JointID jointID in jointKeys)
+            {
+                Image img = new Image();
+                BitmapImage bmp = new BitmapImage();
+                var jointFilename = "skins/Joint-" + jointID + ".png";
+                bmp.BeginInit();
+                try
+                {
+                    bmp.UriSource = new Uri(jointFilename, UriKind.Relative);
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                    bmp.EndInit();
+                    img.Source = bmp;
+                    joints.Add(jointID, img);
+                }
+                catch (System.IO.FileNotFoundException e)
+                {
+                    ;
+                    //System.Diagnostics.Trace.TraceWarning("Joint file '" + jointFilename + " missing!");
+                }
+            }
         }
     }
 

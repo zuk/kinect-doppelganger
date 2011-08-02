@@ -46,5 +46,17 @@ namespace Doppelganger.Properties {
                 this["WindowState"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int CameraAngle {
+            get {
+                return ((int)(this["CameraAngle"]));
+            }
+            set {
+                this["CameraAngle"] = value;
+            }
+        }
     }
 }

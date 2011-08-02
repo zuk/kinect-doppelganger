@@ -34,6 +34,7 @@ using Doppelganger_Utils;
 // increase the resolution to get framerates above between 50fps with any
 // consistency.
 using System.Runtime.InteropServices;
+using System.Collections;
 public class Win32
 {
     [DllImport("Winmm.dll")]
@@ -51,12 +52,12 @@ namespace Doppelganger
     {
         const int TimerResolution = 2;  // ms
         const int NumIntraFrames = 3;
-        const int MaxShapes = 80;
+        const int MaxShapes = 0;
         const double MaxFramerate = 70;
         const double MinFramerate = 15;
         const double MinShapeSize = 12;
         const double MaxShapeSize = 90;
-        const double DefaultDropRate = 2.5;
+        const double DefaultDropRate = 0;
         const double DefaultDropSize = 32.0;
         const double DefaultDropGravity = 1.0;
 
@@ -87,6 +88,8 @@ namespace Doppelganger
             private int id;
             private static int colorId = 0;
 
+            Skin skin;
+            
             private const double BONE_SIZE = 0.01;
             private const double HEAD_SIZE = 0.075;
             private const double HAND_SIZE = 0.03;
@@ -111,6 +114,8 @@ namespace Doppelganger
                 brJoints = new SolidColorBrush(Color.FromRgb(iJointCols[iMixr[i]], iJointCols[iMixg[i]], iJointCols[iMixb[i]]));
                 brBones = new SolidColorBrush(Color.FromRgb(iBoneCols[iMixr[i]], iBoneCols[iMixg[i]], iBoneCols[iMixb[i]]));
                 lastUpdated = DateTime.Now;
+
+                skin = new Skin();
             }
 
             public int getId()
@@ -162,6 +167,12 @@ namespace Doppelganger
                 if (!isAlive)
                     return;
 
+                Label l1 = new Label();
+                l1.Content = "";
+                l1.FontSize = 16;
+                l1.Foreground = System.Windows.Media.Brushes.White;
+                children.Add(l1);
+                
                 // Draw all bones first, then circles (head and hands).
                 DateTime cur = DateTime.Now;
                 foreach (var segment in segments)
@@ -169,16 +180,58 @@ namespace Doppelganger
                     Segment seg = segment.Value.GetEstimatedSegment(cur);
                     if (!seg.IsCircle())
                     {
-                        var line = new Line();
-                        line.StrokeThickness = seg.radius * 2;
-                        line.X1 = seg.x1;
-                        line.Y1 = seg.y1;
-                        line.X2 = seg.x2;
-                        line.Y2 = seg.y2;
-                        line.Stroke = brBones;
-                        line.StrokeEndLineCap = PenLineCap.Round;
-                        line.StrokeStartLineCap = PenLineCap.Round;
-                        children.Add(line);
+                        if (skin.bones.ContainsKey(segment.Key.GetBoneID()) && segment.Key.GetBoneID() == Bone.BoneID.ForearmLeft)
+                        {
+                            Image bone = skin.bones[segment.Key.GetBoneID()];
+                            
+                                
+                            TransformGroup trans = new TransformGroup();
+
+                            double y = seg.y1 - seg.y2;
+                            double x = seg.x1 - seg.x2;
+                            double hyp = Math.Sqrt(y*y + x*x);
+                            bone.Stretch = Stretch.Uniform;
+                            if (hyp > 30)
+                                bone.Height = hyp;
+                            else
+                                bone.Height = 30;
+
+                            bone.SetValue(Canvas.LeftProperty, seg.x2 - (bone.ActualWidth / 2.0));
+                            bone.SetValue(Canvas.TopProperty, seg.y2);
+                            
+                            RotateTransform rotate = new RotateTransform();
+                            rotate.Angle = Math.Atan(Math.Abs(x / y)) * (180 / Math.PI);
+                            l1.Content = Math.Abs(x/y) + " --> "+ Math.Atan(Math.Abs(x/y)) + " --> "+ rotate.Angle.ToString();
+                            rotate.CenterX = bone.ActualWidth / 2.0;
+                            rotate.CenterY = 0;
+                            trans.Children.Add(rotate);
+                            bone.RenderTransform = trans;
+                            
+                            
+                            if (!children.Contains(bone))
+                                children.Add(bone);
+                        }
+                        //else
+                        //{
+                            var line = new Line();
+                            line.StrokeThickness = seg.radius * 2;
+                            line.X1 = seg.x1;
+                            line.Y1 = seg.y1;
+                            line.X2 = seg.x2;
+                            line.Y2 = seg.y2;
+                            line.Stroke = brBones;
+                            line.StrokeEndLineCap = PenLineCap.Round;
+                            line.StrokeStartLineCap = PenLineCap.Round;
+                            children.Add(line);
+                        //}
+
+                        
+                        //var label = new Label();
+                        //label.Content = segment.Key.joint1;
+                        //label.SetValue(Canvas.LeftProperty, seg.x1);
+                        //label.SetValue(Canvas.TopProperty, seg.y1);
+                        //children.Add(label);
+                        
                     }
                 }
                 foreach (var segment in segments)
@@ -186,20 +239,49 @@ namespace Doppelganger
                     Segment seg = segment.Value.GetEstimatedSegment(cur); 
                     if (seg.IsCircle())
                     {
-                        var circle = new Ellipse();
-                        circle.Width = seg.radius * 2;
-                        circle.Height = seg.radius * 2;
-                        circle.SetValue(Canvas.LeftProperty, seg.x1 - seg.radius);
-                        circle.SetValue(Canvas.TopProperty, seg.y1 - seg.radius);
-                        circle.Stroke = brJoints;
-                        circle.StrokeThickness = 1;
-                        circle.Fill = brBones;
-                        children.Add(circle);
+                        if (skin.joints.ContainsKey(segment.Key.joint1) /*&& segment.Key.GetBoneID() == Bone.BoneID.Torso*/)
+                        {
+                            Image joint = skin.joints[segment.Key.joint1];
+
+                            TransformGroup trans = new TransformGroup();
+
+                            double y = seg.y1;
+                            double x = seg.x1;
+                            double hyp = seg.radius * 4;
+                            joint.Stretch = Stretch.Uniform;
+                            if (hyp > 30)
+                                joint.Height = hyp;
+                            else
+                                joint.Height = 30;
+
+                            joint.SetValue(Canvas.LeftProperty, seg.x1 - (joint.ActualWidth / 2.0));
+                            joint.SetValue(Canvas.TopProperty, seg.y1 - (joint.ActualHeight / 2.0));
+
+                            if (!children.Contains(joint))
+                                children.Add(joint);
+                        }
+                        else
+                        {
+                            var circle = new Ellipse();
+                            circle.Width = seg.radius * 2;
+                            circle.Height = seg.radius * 2;
+                            circle.SetValue(Canvas.LeftProperty, seg.x1 - seg.radius);
+                            circle.SetValue(Canvas.TopProperty, seg.y1 - seg.radius);
+                            circle.Stroke = brJoints;
+                            circle.StrokeThickness = 1;
+                            circle.Fill = brBones;
+                            //var label = new Label();
+                            //label.Content = segment.Key.joint1;
+                            //label.SetValue(Canvas.LeftProperty, seg.x1);
+                            //label.SetValue(Canvas.TopProperty, seg.y1);
+                            //children.Add(label);
+                            children.Add(circle);
+                        }
                     }
                 }
 
-                // Remove unused players after 1/2 second.
-                if (DateTime.Now.Subtract(lastUpdated).TotalMilliseconds > 500)
+                // Remove unused players after 2 seconds.
+                if (DateTime.Now.Subtract(lastUpdated).TotalMilliseconds > 2000)
                     isAlive = false;
             }
         }
@@ -354,6 +436,7 @@ namespace Doppelganger
                 return false;
             }
 
+            nui.NuiCamera.ElevationAngle = Properties.Settings.Default.CameraAngle;
             nui.DepthStream.Open(ImageStreamType.Depth, 2, ImageResolution.Resolution320x240, ImageType.DepthAndPlayerIndex);
             nui.VideoStream.Open(ImageStreamType.Video, 2, ImageResolution.Resolution640x480, ImageType.Color);
             nui.SkeletonEngine.TransformSmooth = true;
@@ -435,7 +518,7 @@ namespace Doppelganger
             gameThread.SetApartmentState(ApartmentState.STA);
             gameThread.Start();
 
-            FlyingText.NewFlyingText(screenRect.Width / 30, new Point(screenRect.Width / 2, screenRect.Height / 2), "Shapes!");
+            //FlyingText.NewFlyingText(screenRect.Width / 30, new Point(screenRect.Width / 2, screenRect.Height / 2), "Shapes!");
         }
 
         private void GameThread()
@@ -487,20 +570,20 @@ namespace Doppelganger
             {
                 foreach (var pair in players)
                 {
-                    HitType hit = fallingThings.LookForHits(pair.Value.segments, pair.Value.getId());
-                    if ((hit & HitType.Squeezed) != 0)
-                        squeezeSound.Play();
-                    else if ((hit & HitType.Popped) != 0)
-                        popSound.Play();
-                    else if ((hit & HitType.Hand) != 0)
-                        hitSound.Play();
+                    //HitType hit = fallingThings.LookForHits(pair.Value.segments, pair.Value.getId());
+                    //if ((hit & HitType.Squeezed) != 0)
+                    //    squeezeSound.Play();
+                    //else if ((hit & HitType.Popped) != 0)
+                    //    popSound.Play();
+                    //else if ((hit & HitType.Hand) != 0)
+                    //    hitSound.Play();
                 }
                 fallingThings.AdvanceFrame();
             }
 
             // Draw new Wpf scene by adding all objects to canvas
             playfield.Children.Clear();
-            fallingThings.DrawFrame(playfield.Children);
+            //fallingThings.DrawFrame(playfield.Children);
             foreach (var player in players)
                 player.Value.Draw(playfield.Children);
             BannerText.Draw(playfield.Children);
