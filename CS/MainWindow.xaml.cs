@@ -189,19 +189,19 @@ namespace Doppelganger
 
                             double y = seg.y1 - seg.y2;
                             double x = seg.x1 - seg.x2;
-                            double hyp = Math.Sqrt(y*y + x*x);
+                            double r = Math.Sqrt(y*y + x*x);
                             bone.Stretch = Stretch.Uniform;
-                            if (hyp > 30)
-                                bone.Height = hyp;
+                            if (r > 30)
+                                bone.Height = r;
                             else
                                 bone.Height = 30;
-
+                            
                             bone.SetValue(Canvas.LeftProperty, seg.x2 - (bone.ActualWidth / 2.0));
                             bone.SetValue(Canvas.TopProperty, seg.y2);
                             
                             RotateTransform rotate = new RotateTransform();
-                            rotate.Angle = Math.Atan(Math.Abs(x / y)) * (180 / Math.PI);
-                            l1.Content = Math.Abs(x/y) + " --> "+ Math.Atan(Math.Abs(x/y)) + " --> "+ rotate.Angle.ToString();
+                            rotate.Angle = Math.Atan2(y,x) * (180 / Math.PI);
+                            l1.Content = Math.Atan2(x,y) + " --> "+ rotate.Angle.ToString();
                             rotate.CenterX = bone.ActualWidth / 2.0;
                             rotate.CenterY = 0;
                             trans.Children.Add(rotate);
