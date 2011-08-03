@@ -44,7 +44,6 @@ namespace Doppelganger_Utils
             ThighLeft = 5,
             CalfLeft = 6,
             AnkleLeft = 7,
-            FootLeft = 8,
 
             Torso = 9,
             Neck = 10,
@@ -56,8 +55,7 @@ namespace Doppelganger_Utils
             HipRight = 15,
             ThighRight = 16,
             CalfRight = 17,
-            AnkleRight = 18,
-            FootRight = 19
+            AnkleRight = 18
         }
 
         public JointID joint1;
@@ -84,7 +82,7 @@ namespace Doppelganger_Utils
             else if (IsJointPair(JointID.KneeLeft, JointID.AnkleLeft))
                 return BoneID.CalfLeft;
             else if (IsJointPair(JointID.AnkleLeft, JointID.FootLeft))
-                return BoneID.FootLeft;
+                return BoneID.AnkleLeft;
             else if (IsJointPair(JointID.HandRight, JointID.WristRight))
                 return BoneID.HandRight;
             else if (IsJointPair(JointID.WristRight, JointID.ElbowRight))
@@ -99,10 +97,8 @@ namespace Doppelganger_Utils
                 return BoneID.ThighRight;
             else if (IsJointPair(JointID.KneeRight, JointID.AnkleRight))
                 return BoneID.CalfRight;
-            else if (IsJointPair(JointID.HipRight, JointID.KneeRight))
-                return BoneID.AnkleRight;
             else if (IsJointPair(JointID.AnkleRight, JointID.FootRight))
-                return BoneID.FootRight;
+                return BoneID.AnkleRight;
             else if (IsJointPair(JointID.ShoulderCenter, JointID.Head))
                 return BoneID.Neck;
             else if (IsJointPair(JointID.ShoulderCenter, JointID.HipCenter))

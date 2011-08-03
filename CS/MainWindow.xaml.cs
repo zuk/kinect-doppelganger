@@ -61,6 +61,8 @@ namespace Doppelganger
         const double DefaultDropSize = 32.0;
         const double DefaultDropGravity = 1.0;
 
+        static bool ShowSkeleton = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -180,7 +182,7 @@ namespace Doppelganger
                     Segment seg = segment.Value.GetEstimatedSegment(cur);
                     if (!seg.IsCircle())
                     {
-                        if (skin.bones.ContainsKey(segment.Key.GetBoneID()) && segment.Key.GetBoneID() == Bone.BoneID.ForearmLeft)
+                        if (skin.bones.ContainsKey(segment.Key.GetBoneID()) /*&& segment.Key.GetBoneID() == Bone.BoneID.ForearmLeft*/)
                         {
                             Image bone = skin.bones[segment.Key.GetBoneID()];
                             
@@ -191,16 +193,23 @@ namespace Doppelganger
                             double x = seg.x1 - seg.x2;
                             double r = Math.Sqrt(y*y + x*x);
                             bone.Stretch = Stretch.Uniform;
+
+                            if (segment.Key.GetBoneID() == Bone.BoneID.HandLeft || segment.Key.GetBoneID() == Bone.BoneID.HandRight)
+                                r = r * 2;
+
                             if (r > 30)
                                 bone.Height = r;
                             else
                                 bone.Height = 30;
+
+                            if (segment.Key.GetBoneID() == Bone.BoneID.Torso)
+                                bone.Height = bone.Height * 1.6;
                             
                             bone.SetValue(Canvas.LeftProperty, seg.x2 - (bone.ActualWidth / 2.0));
                             bone.SetValue(Canvas.TopProperty, seg.y2);
                             
                             RotateTransform rotate = new RotateTransform();
-                            rotate.Angle = Math.Atan2(y,x) * (180 / Math.PI);
+                            rotate.Angle = (Math.Atan2(y,x) * (180 / Math.PI)) - 90;
                             l1.Content = Math.Atan2(x,y) + " --> "+ rotate.Angle.ToString();
                             rotate.CenterX = bone.ActualWidth / 2.0;
                             rotate.CenterY = 0;
@@ -211,8 +220,8 @@ namespace Doppelganger
                             if (!children.Contains(bone))
                                 children.Add(bone);
                         }
-                        //else
-                        //{
+                        
+                        if (MainWindow.ShowSkeleton) {
                             var line = new Line();
                             line.StrokeThickness = seg.radius * 2;
                             line.X1 = seg.x1;
@@ -222,15 +231,18 @@ namespace Doppelganger
                             line.Stroke = brBones;
                             line.StrokeEndLineCap = PenLineCap.Round;
                             line.StrokeStartLineCap = PenLineCap.Round;
+
+                            var label = new Label();
+                            label.Content = segment.Key.joint1;
+                            label.SetValue(Canvas.LeftProperty, seg.x1);
+                            label.SetValue(Canvas.TopProperty, seg.y1);
+                            children.Add(label);
+
                             children.Add(line);
-                        //}
+                        }
 
                         
-                        //var label = new Label();
-                        //label.Content = segment.Key.joint1;
-                        //label.SetValue(Canvas.LeftProperty, seg.x1);
-                        //label.SetValue(Canvas.TopProperty, seg.y1);
-                        //children.Add(label);
+                        
                         
                     }
                 }
@@ -247,7 +259,7 @@ namespace Doppelganger
 
                             double y = seg.y1;
                             double x = seg.x1;
-                            double hyp = seg.radius * 4;
+                            double hyp = seg.radius * 3.7;
                             joint.Stretch = Stretch.Uniform;
                             if (hyp > 30)
                                 joint.Height = hyp;
@@ -260,7 +272,8 @@ namespace Doppelganger
                             if (!children.Contains(joint))
                                 children.Add(joint);
                         }
-                        else
+
+                        if (MainWindow.ShowSkeleton)
                         {
                             var circle = new Ellipse();
                             circle.Width = seg.radius * 2;
@@ -270,18 +283,18 @@ namespace Doppelganger
                             circle.Stroke = brJoints;
                             circle.StrokeThickness = 1;
                             circle.Fill = brBones;
-                            //var label = new Label();
-                            //label.Content = segment.Key.joint1;
-                            //label.SetValue(Canvas.LeftProperty, seg.x1);
-                            //label.SetValue(Canvas.TopProperty, seg.y1);
-                            //children.Add(label);
+                            var label = new Label();
+                            label.Content = segment.Key.joint1;
+                            label.SetValue(Canvas.LeftProperty, seg.x1);
+                            label.SetValue(Canvas.TopProperty, seg.y1);
+                            children.Add(label);
                             children.Add(circle);
                         }
                     }
                 }
 
-                // Remove unused players after 2 seconds.
-                if (DateTime.Now.Subtract(lastUpdated).TotalMilliseconds > 2000)
+                // Remove unused players after 0.5 seconds.
+                if (DateTime.Now.Subtract(lastUpdated).TotalMilliseconds > 500)
                     isAlive = false;
             }
         }
@@ -402,12 +415,12 @@ namespace Doppelganger
             }
             if (alive != playersAlive)
             {
-                if (alive == 2)
-                    fallingThings.SetGameMode(FallingThings.GameMode.TwoPlayer);
-                else if (alive == 1)
-                    fallingThings.SetGameMode(FallingThings.GameMode.Solo);
-                else if (alive == 0)
-                    fallingThings.SetGameMode(FallingThings.GameMode.Off);
+                //if (alive == 2)
+                //    fallingThings.SetGameMode(FallingThings.GameMode.TwoPlayer);
+                //else if (alive == 1)
+                //    fallingThings.SetGameMode(FallingThings.GameMode.Solo);
+                //else if (alive == 0)
+                //    fallingThings.SetGameMode(FallingThings.GameMode.Off);
 
                 playersAlive = alive;
             }
@@ -482,20 +495,28 @@ namespace Doppelganger
                 fallingThings.SetBoundaries(rFallingBounds);
             }
         }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.S)
+            {
+                MainWindow.ShowSkeleton = !MainWindow.ShowSkeleton;
+            }
+        }
         
         private void Window_Loaded(object sender, EventArgs e)
         {
             playfield.ClipToBounds = true;
 
-            fallingThings = new FallingThings(MaxShapes, targetFramerate, NumIntraFrames);
+            //fallingThings = new FallingThings(MaxShapes, targetFramerate, NumIntraFrames);
 
             UpdatePlayfieldSize();
             
-            fallingThings.SetGravity(dropGravity);
-            fallingThings.SetDropRate(dropRate);
-            fallingThings.SetSize(dropSize);
-            fallingThings.SetPolies(PolyType.All);
-            fallingThings.SetGameMode(FallingThings.GameMode.Off);
+            //fallingThings.SetGravity(dropGravity);
+            //fallingThings.SetDropRate(dropRate);
+            //fallingThings.SetSize(dropSize);
+            //fallingThings.SetPolies(PolyType.All);
+            //fallingThings.SetGameMode(FallingThings.GameMode.Off);
 
             if ((nui != null) && InitializeNui())
             {
@@ -562,24 +583,24 @@ namespace Doppelganger
         private void HandleGameTimer(int param)
         {
             // Every so often, notify what our actual framerate is
-            if ((frameCount % 100) == 0)
-                fallingThings.SetFramerate(1000.0 / actualFrameTime);
+            //if ((frameCount % 100) == 0)
+            //    fallingThings.SetFramerate(1000.0 / actualFrameTime);
 
             // Advance animations, and do hit testing.
-            for (int i = 0; i < NumIntraFrames; ++i)
-            {
-                foreach (var pair in players)
-                {
-                    //HitType hit = fallingThings.LookForHits(pair.Value.segments, pair.Value.getId());
-                    //if ((hit & HitType.Squeezed) != 0)
-                    //    squeezeSound.Play();
-                    //else if ((hit & HitType.Popped) != 0)
-                    //    popSound.Play();
-                    //else if ((hit & HitType.Hand) != 0)
-                    //    hitSound.Play();
-                }
-                fallingThings.AdvanceFrame();
-            }
+            //for (int i = 0; i < NumIntraFrames; ++i)
+            //{
+            //    foreach (var pair in players)
+            //    {
+            //        //HitType hit = fallingThings.LookForHits(pair.Value.segments, pair.Value.getId());
+            //        //if ((hit & HitType.Squeezed) != 0)
+            //        //    squeezeSound.Play();
+            //        //else if ((hit & HitType.Popped) != 0)
+            //        //    popSound.Play();
+            //        //else if ((hit & HitType.Hand) != 0)
+            //        //    hitSound.Play();
+            //    }
+            //    fallingThings.AdvanceFrame();
+            //}
 
             // Draw new Wpf scene by adding all objects to canvas
             playfield.Children.Clear();
